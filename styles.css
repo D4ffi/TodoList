@@ -1,0 +1,37 @@
+.empty-home {
+    background-color: #262626;
+    height: 874px;
+    min-width: 402px;
+    position: relative;
+    width: 100%;
+}
+
+.empty-home .text-wrapper {
+    color: #f6eeee;
+    font-family: "Allerta-Regular", Helvetica;
+    font-size: 24px;
+    font-weight: 400;
+    left: 87px;
+    letter-spacing: 0;
+    line-height: normal;
+    position: absolute;
+    top: 112px;
+}
+
+.empty-home .ellipse {
+    background-color: #1f1f1f;
+    border-radius: 135.5px;
+    height: 271px;
+    left: 65px;
+    position: absolute;
+    top: 301px;
+    width: 271px;
+}
+
+.empty-home .vector {
+    height: 10.98%;
+    left: 36.44%;
+    position: absolute;
+    top: 43.76%;
+    width: 23.88%;
+}
