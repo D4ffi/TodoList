@@ -179,7 +179,7 @@ export const Home: React.FC<HomeProps> = ({ onNavigateToRecentlyDeleted }) => {
                 <FlatList
                     data={activeTodos}
                     renderItem={renderTodoItem}
-                    keyExtractor={(item) => item.id.toString()}
+                    keyExtractor={(item) => `active-${item.id}`}
                     style={styles.todoList}
                     showsVerticalScrollIndicator={false}
                 />

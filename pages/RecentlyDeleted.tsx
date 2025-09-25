@@ -162,7 +162,7 @@ export const RecentlyDeleted: React.FC<RecentlyDeletedProps> = ({ onNavigateBack
         <FlatList
           data={deletedTodos}
           renderItem={renderDeletedTodoItem}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => `deleted-${item.id}`}
           style={styles.todoList}
           showsVerticalScrollIndicator={false}
         />

@@ -35,6 +35,7 @@ interface TodoProviderProps {
 export const TodoProvider: React.FC<TodoProviderProps> = ({ children }) => {
   const [activeTodos, setActiveTodos] = useState<Todo[]>([]);
   const [deletedTodos, setDeletedTodos] = useState<DeletedTodo[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -50,35 +51,42 @@ export const TodoProvider: React.FC<TodoProviderProps> = ({ children }) => {
         if (loadedDeletedTodos) {
           setDeletedTodos(loadedDeletedTodos);
         }
+
+        setIsInitialized(true);
       } catch (error) {
         console.error('Error loading todos:', error);
+        setIsInitialized(true);
       }
     };
 
     loadData();
   }, []);
 
-  // Save active todos whenever they change
+  // Save active todos whenever they change (but not during initial load)
   useEffect(() => {
-    if (activeTodos.length > 0) {
+    if (isInitialized) {
       saveTodos(activeTodos).catch(error =>
         console.error('Error saving active todos:', error)
       );
     }
-  }, [activeTodos]);
+  }, [activeTodos, isInitialized]);
 
   // Save deleted todos whenever they change
   useEffect(() => {
-    if (deletedTodos.length > 0) {
+    if (isInitialized) {
       saveDeletedTodos(deletedTodos).catch(error =>
         console.error('Error saving deleted todos:', error)
       );
     }
-  }, [deletedTodos]);
+  }, [deletedTodos, isInitialized]);
+
+  const generateUniqueId = () => {
+    return Date.now() + Math.floor(Math.random() * 10000);
+  };
 
   const addTodo = (title: string, description: string) => {
     const newTodo: Todo = {
-      id: Date.now(),
+      id: generateUniqueId(),
       title,
       description,
       completed: false,
