@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ImageBackground } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useTodos, Todo } from "../contexts/TodoContext";
 import AddNoteModal from "../components/AddNoteModal";
 import DeleteModal from "../components/DeleteModal";
 import EditModal from "../components/EditModal";
@@ -14,20 +15,18 @@ import {
   BackgroundImageData
 } from "../utils/imageUtils";
 
-interface Todo {
-    id: number;
-    title: string;
-    description: string;
-    completed: boolean;
+interface HomeProps {
+  onNavigateToRecentlyDeleted: () => void;
 }
 
-export const Home = () => {
+export const Home: React.FC<HomeProps> = ({ onNavigateToRecentlyDeleted }) => {
+    const { activeTodos, addTodo, updateTodo, toggleTodo, deleteTodo } = useTodos();
+
     const [modalVisible, setModalVisible] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [changeBackgroundVisible, setChangeBackgroundVisible] = useState(false);
     const [selectedTodoId, setSelectedTodoId] = useState<number | null>(null);
-    const [todos, setTodos] = useState<Todo[]>([]);
     const [backgroundImage, setBackgroundImage] = useState<BackgroundImageData | null>(null);
 
     const handleAddTodo = () => {
@@ -39,20 +38,12 @@ export const Home = () => {
     };
 
     const handleSaveTodo = (title: string, description: string) => {
-        const newTodo: Todo = {
-            id: Date.now(),
-            title,
-            description,
-            completed: false,
-        };
-        setTodos([...todos, newTodo]);
+        addTodo(title, description);
         setModalVisible(false);
     };
 
-    const toggleTodo = (id: number) => {
-        setTodos(todos.map(todo =>
-            todo.id === id ? { ...todo, completed: !todo.completed } : todo
-        ));
+    const handleToggleTodo = (id: number) => {
+        toggleTodo(id);
     };
 
     const handleLongPress = (todoId: number) => {
@@ -62,7 +53,7 @@ export const Home = () => {
 
     const handleDeleteTodo = () => {
         if (selectedTodoId !== null) {
-            setTodos(todos.filter(todo => todo.id !== selectedTodoId));
+            deleteTodo(selectedTodoId);
             setDeleteModalVisible(false);
             setSelectedTodoId(null);
         }
@@ -80,11 +71,7 @@ export const Home = () => {
 
     const handleSaveEditTodo = (title: string, description: string) => {
         if (selectedTodoId !== null) {
-            setTodos(todos.map(todo =>
-                todo.id === selectedTodoId
-                    ? { ...todo, title, description }
-                    : todo
-            ));
+            updateTodo(selectedTodoId, title, description);
             setEditModalVisible(false);
             setSelectedTodoId(null);
         }
@@ -151,7 +138,7 @@ export const Home = () => {
     const renderTodoItem = ({ item }: { item: Todo }) => (
         <TouchableOpacity
             style={[styles.todoItem, item.completed && styles.completedTodo]}
-            onPress={() => toggleTodo(item.id)}
+            onPress={() => handleToggleTodo(item.id)}
             onLongPress={() => handleLongPress(item.id)}
         >
             <View style={styles.todoContent}>
@@ -172,16 +159,25 @@ export const Home = () => {
 
     const containerContent = (
         <>
-            <Text style={styles.title}>Todo List</Text>
-            
-            {todos.length === 0 ? (
+            {/* Header with navigation */}
+            <View style={styles.header}>
+                <Text style={styles.title}>Todo List</Text>
+                <TouchableOpacity
+                    onPress={onNavigateToRecentlyDeleted}
+                    style={styles.recentlyDeletedButton}
+                >
+                    <MaterialIcons name="delete-sweep" size={24} color="#f6eeee" />
+                </TouchableOpacity>
+            </View>
+
+            {activeTodos.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Text style={styles.emptyText}>No todos yet!</Text>
                     <Text style={styles.emptySubtext}>Tap the + button to add your first todo</Text>
                 </View>
             ) : (
                 <FlatList
-                    data={todos}
+                    data={activeTodos}
                     renderItem={renderTodoItem}
                     keyExtractor={(item) => item.id.toString()}
                     style={styles.todoList}
@@ -204,15 +200,15 @@ export const Home = () => {
                 onClose={handleCancelDelete}
                 onDelete={handleDeleteTodo}
                 onEdit={handleEditTodo}
-                todo={selectedTodoId ? todos.find(todo => todo.id === selectedTodoId) : undefined}
+                todo={selectedTodoId ? activeTodos.find(todo => todo.id === selectedTodoId) : undefined}
             />
 
             <EditModal
                 visible={editModalVisible}
                 onClose={handleCloseEditModal}
                 onSave={handleSaveEditTodo}
-                initialTitle={selectedTodoId ? todos.find(todo => todo.id === selectedTodoId)?.title : ''}
-                initialDescription={selectedTodoId ? todos.find(todo => todo.id === selectedTodoId)?.description : ''}
+                initialTitle={selectedTodoId ? activeTodos.find(todo => todo.id === selectedTodoId)?.title : ''}
+                initialDescription={selectedTodoId ? activeTodos.find(todo => todo.id === selectedTodoId)?.description : ''}
             />
 
             <ChangeBackgroundModal
@@ -271,12 +267,26 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.4)',
         mixBlendMode: 'luminosity',
     },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 30,
+    },
     title: {
         color: "#f6eeee",
         fontSize: 28,
         fontWeight: "600",
-        marginBottom: 30,
         textAlign: "center",
+        flex: 1,
+    },
+    recentlyDeletedButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 20,
+        backgroundColor: 'rgba(31, 31, 31, 0.8)',
     },
     emptyState: {
         flex: 1,

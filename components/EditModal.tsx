@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   View,
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -26,12 +27,34 @@ const EditModal: React.FC<EditModalProps> = ({
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
 
+  // Animation refs
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const modalTranslateY = useRef(new Animated.Value(300)).current;
+
   useEffect(() => {
     if (visible) {
       setTitle(initialTitle);
       setDescription(initialDescription);
+      // Start enter animations
+      Animated.parallel([
+        Animated.timing(overlayOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(modalTranslateY, {
+          toValue: 0,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Reset animations for next time
+      overlayOpacity.setValue(0);
+      modalTranslateY.setValue(300);
     }
-  }, [visible, initialTitle, initialDescription]);
+  }, [visible, initialTitle, initialDescription, overlayOpacity, modalTranslateY]);
 
   const handleSave = () => {
     if (title.trim() && description.trim()) {
@@ -41,27 +64,58 @@ const EditModal: React.FC<EditModalProps> = ({
   };
 
   const handleClose = () => {
-    setTitle(initialTitle);
-    setDescription(initialDescription);
-    onClose();
+    // Start exit animations
+    Animated.parallel([
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalTranslateY, {
+        toValue: 300,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Reset state after animations complete
+      setTitle(initialTitle);
+      setDescription(initialDescription);
+      onClose();
+    });
   };
 
   return (
     <Modal
       visible={visible}
       transparent={true}
-      animationType="fade"
+      animationType="none"
       onRequestClose={handleClose}
     >
-      <TouchableOpacity
-        style={styles.fullScreenContainer}
-        activeOpacity={1}
-        onPress={handleClose}
-      >
-        <TouchableOpacity
-          style={styles.modalContainer}
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
+      <View style={styles.fullScreenContainer}>
+        {/* Separate Overlay */}
+        <Animated.View
+          style={[
+            styles.overlay,
+            {
+              opacity: overlayOpacity,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.overlayTouchable}
+            activeOpacity={1}
+            onPress={handleClose}
+          />
+        </Animated.View>
+
+        {/* Modal Content */}
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            {
+              transform: [{ translateY: modalTranslateY }],
+            },
+          ]}
         >
           {/* Todo Title */}
           <View style={styles.titleContainer}>
@@ -92,8 +146,8 @@ const EditModal: React.FC<EditModalProps> = ({
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <MaterialIcons name="check" size={24} color="#ffffff" />
           </TouchableOpacity>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </Animated.View>
+      </View>
     </Modal>
   );
 };
@@ -101,20 +155,25 @@ const EditModal: React.FC<EditModalProps> = ({
 const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  overlayTouchable: {
+    flex: 1,
   },
   modalContainer: {
     backgroundColor: '#262626',
-    borderRadius: 12,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 24,
-    width: 350,
-    maxWidth: '90%',
+    paddingBottom: 40,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: -2,
     },
     shadowOpacity: 0.3,
     shadowRadius: 8,
